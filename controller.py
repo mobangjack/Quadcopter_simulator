@@ -4,8 +4,7 @@ import time
 import threading
 
 class Controller_PID_Point2Point():
-    def __init__(self, get_state, get_time, actuate_motors, params, quad_identifier):
-        self.quad_identifier = quad_identifier
+    def __init__(self, get_state, get_time, actuate_motors, params):
         self.actuate_motors = actuate_motors
         self.get_state = get_state
         self.get_time = get_time
@@ -31,13 +30,14 @@ class Controller_PID_Point2Point():
         self.target = [0,0,0]
         self.yaw_target = 0.0
         self.run = True
+        self.halt = False
 
     def wrap_angle(self,val):
         return( ( val + np.pi) % (2 * np.pi ) - np.pi )
 
     def update(self):
         [dest_x,dest_y,dest_z] = self.target
-        [x,y,z,x_dot,y_dot,z_dot,theta,phi,gamma,theta_dot,phi_dot,gamma_dot] = self.get_state(self.quad_identifier)
+        [x,y,z,x_dot,y_dot,z_dot,theta,phi,gamma,theta_dot,phi_dot,gamma_dot] = self.get_state()
         x_error = dest_x-x
         y_error = dest_y-y
         z_error = dest_z-z
@@ -67,7 +67,8 @@ class Controller_PID_Point2Point():
         m3 = throttle - x_val + z_val
         m4 = throttle - y_val - z_val
         M = np.clip([m1,m2,m3,m4],self.MOTOR_LIMITS[0],self.MOTOR_LIMITS[1])
-        self.actuate_motors(self.quad_identifier,M)
+        if not self.halt:
+            self.actuate_motors(M)
 
     def update_target(self,target):
         self.target = target
@@ -95,7 +96,7 @@ class Controller_PID_Point2Point():
 class Controller_PID_Velocity(Controller_PID_Point2Point):
     def update(self):
         [dest_x,dest_y,dest_z] = self.target
-        [x,y,z,x_dot,y_dot,z_dot,theta,phi,gamma,theta_dot,phi_dot,gamma_dot] = self.get_state(self.quad_identifier)
+        [x,y,z,x_dot,y_dot,z_dot,theta,phi,gamma,theta_dot,phi_dot,gamma_dot] = self.get_state()
         x_error = dest_x-x_dot
         y_error = dest_y-y_dot
         z_error = dest_z-z
@@ -125,4 +126,4 @@ class Controller_PID_Velocity(Controller_PID_Point2Point):
         m3 = throttle - x_val + z_val
         m4 = throttle - y_val - z_val
         M = np.clip([m1,m2,m3,m4],self.MOTOR_LIMITS[0],self.MOTOR_LIMITS[1])
-        self.actuate_motors(self.quad_identifier,M)
+        self.actuate_motors(M)

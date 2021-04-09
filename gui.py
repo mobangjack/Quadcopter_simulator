@@ -34,26 +34,24 @@ class GUI():
         return R
 
     def init_plot(self):
-        for key in self.quads:
-            self.quads[key]['l1'], = self.ax.plot([],[],[],color='blue',linewidth=3,antialiased=False)
-            self.quads[key]['l2'], = self.ax.plot([],[],[],color='red',linewidth=3,antialiased=False)
-            self.quads[key]['hub'], = self.ax.plot([],[],[],marker='o',color='green', markersize=6,antialiased=False)
+        self.quads['l1'], = self.ax.plot([],[],[],color='blue',linewidth=3,antialiased=False)
+        self.quads['l2'], = self.ax.plot([],[],[],color='red',linewidth=3,antialiased=False)
+        self.quads['hub'], = self.ax.plot([],[],[],marker='o',color='green', markersize=6,antialiased=False)
 
     def update(self):
-        for key in self.quads:
-            R = self.rotation_matrix(self.quads[key]['orientation'])
-            L = self.quads[key]['L']
-            points = np.array([ [-L,0,0], [L,0,0], [0,-L,0], [0,L,0], [0,0,0], [0,0,0] ]).T
-            points = np.dot(R,points)
-            points[0,:] += self.quads[key]['position'][0]
-            points[1,:] += self.quads[key]['position'][1]
-            points[2,:] += self.quads[key]['position'][2]
-            self.quads[key]['l1'].set_data(points[0,0:2],points[1,0:2])
-            self.quads[key]['l1'].set_3d_properties(points[2,0:2])
-            self.quads[key]['l2'].set_data(points[0,2:4],points[1,2:4])
-            self.quads[key]['l2'].set_3d_properties(points[2,2:4])
-            self.quads[key]['hub'].set_data(points[0,5],points[1,5])
-            self.quads[key]['hub'].set_3d_properties(points[2,5])
+        R = self.rotation_matrix(self.quads['orientation'])
+        L = self.quads['L']
+        points = np.array([ [-L,0,0], [L,0,0], [0,-L,0], [0,L,0], [0,0,0], [0,0,0] ]).T
+        points = np.dot(R,points)
+        points[0,:] += self.quads['position'][0]
+        points[1,:] += self.quads['position'][1]
+        points[2,:] += self.quads['position'][2]
+        self.quads['l1'].set_data(points[0,0:2],points[1,0:2])
+        self.quads['l1'].set_3d_properties(points[2,0:2])
+        self.quads['l2'].set_data(points[0,2:4],points[1,2:4])
+        self.quads['l2'].set_3d_properties(points[2,2:4])
+        self.quads['hub'].set_data(points[0,5],points[1,5])
+        self.quads['hub'].set_3d_properties(points[2,5])
         plt.pause(0.000000000000001)
 
     def keypress_routine(self,event):
