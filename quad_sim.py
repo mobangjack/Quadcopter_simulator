@@ -30,7 +30,7 @@ def Single_Point2Point():
     signal.signal(signal.SIGINT, signal_handler)
     # Make objects for quadcopter, gui and controller
     quad = quadcopter.Quadcopter(QUADCOPTER)
-    gui_object = gui.GUI(quads=QUADCOPTER)
+    gui_object = gui.GUI(quad=QUADCOPTER)
     arb = arbiter.Arbiter(quad.get_time,quad.set_motor_speeds,channels,1)
     ctrls = []
     ctrl = controller.Controller_PID_Point2Point(quad.get_state,quad.get_time,lambda M: arb.feed(0, M),params=CONTROLLER_PARAMETERS)
@@ -55,8 +55,8 @@ def Single_Point2Point():
                 ctrls[i].update_target(goal)
                 ctrls[i].update_yaw_target(y)
             for i in range(100):
-                gui_object.quads['position'] = quad.get_position()
-                gui_object.quads['orientation'] = quad.get_orientation()
+                gui_object.quad['position'] = quad.get_position()
+                gui_object.quad['orientation'] = quad.get_orientation()
                 gui_object.update()
             for i in range(channels):
                 if i == cursor:

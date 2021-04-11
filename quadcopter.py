@@ -24,26 +24,26 @@ class Propeller():
 class Quadcopter():
     # State space representation: [x y z x_dot y_dot z_dot theta phi gamma theta_dot phi_dot gamma_dot]
     # From Quadcopter Dynamics, Simulation, and Control by Andrew Gibiansky
-    def __init__(self,quads,gravity=9.81,b=0.0245):
-        self.quads = quads
+    def __init__(self,quad,gravity=9.81,b=0.0245):
+        self.quad = quad
         self.g = gravity
         self.b = b
         self.thread_object = None
         self.ode =  scipy.integrate.ode(self.state_dot).set_integrator('vode',nsteps=500,method='bdf')
         self.time = datetime.datetime.now()
-        self.quads['state'] = np.zeros(12)
-        self.quads['state'][0:3] = self.quads['position']
-        self.quads['state'][6:9] = self.quads['orientation']
-        self.quads['m1'] = Propeller(self.quads['prop_size'][0],self.quads['prop_size'][1])
-        self.quads['m2'] = Propeller(self.quads['prop_size'][0],self.quads['prop_size'][1])
-        self.quads['m3'] = Propeller(self.quads['prop_size'][0],self.quads['prop_size'][1])
-        self.quads['m4'] = Propeller(self.quads['prop_size'][0],self.quads['prop_size'][1])
+        self.quad['state'] = np.zeros(12)
+        self.quad['state'][0:3] = self.quad['position']
+        self.quad['state'][6:9] = self.quad['orientation']
+        self.quad['m1'] = Propeller(self.quad['prop_size'][0],self.quad['prop_size'][1])
+        self.quad['m2'] = Propeller(self.quad['prop_size'][0],self.quad['prop_size'][1])
+        self.quad['m3'] = Propeller(self.quad['prop_size'][0],self.quad['prop_size'][1])
+        self.quad['m4'] = Propeller(self.quad['prop_size'][0],self.quad['prop_size'][1])
         # From Quadrotor Dynamics and Control by Randal Beard
-        ixx=((2*self.quads['weight']*self.quads['r']**2)/5)+(2*self.quads['weight']*self.quads['L']**2)
+        ixx=((2*self.quad['weight']*self.quad['r']**2)/5)+(2*self.quad['weight']*self.quad['L']**2)
         iyy=ixx
-        izz=((2*self.quads['weight']*self.quads['r']**2)/5)+(4*self.quads['weight']*self.quads['L']**2)
-        self.quads['I'] = np.array([[ixx,0,0],[0,iyy,0],[0,0,izz]])
-        self.quads['invI'] = np.linalg.inv(self.quads['I'])
+        izz=((2*self.quad['weight']*self.quad['r']**2)/5)+(4*self.quad['weight']*self.quad['L']**2)
+        self.quad['I'] = np.array([[ixx,0,0],[0,iyy,0],[0,0,izz]])
+        self.quad['invI'] = np.linalg.inv(self.quad['I'])
         self.run = True
 
     def rotation_matrix(self,angles):
@@ -65,59 +65,59 @@ class Quadcopter():
     def state_dot(self, time, state):
         state_dot = np.zeros(12)
         # The velocities(t+1 x_dots equal the t x_dots)
-        state_dot[0] = self.quads['state'][3]
-        state_dot[1] = self.quads['state'][4]
-        state_dot[2] = self.quads['state'][5]
+        state_dot[0] = self.quad['state'][3]
+        state_dot[1] = self.quad['state'][4]
+        state_dot[2] = self.quad['state'][5]
         # The acceleration
-        x_dotdot = np.array([0,0,-self.quads['weight']*self.g]) + np.dot(self.rotation_matrix(self.quads['state'][6:9]),np.array([0,0,(self.quads['m1'].thrust + self.quads['m2'].thrust + self.quads['m3'].thrust + self.quads['m4'].thrust)]))/self.quads['weight']
+        x_dotdot = np.array([0,0,-self.quad['weight']*self.g]) + np.dot(self.rotation_matrix(self.quad['state'][6:9]),np.array([0,0,(self.quad['m1'].thrust + self.quad['m2'].thrust + self.quad['m3'].thrust + self.quad['m4'].thrust)]))/self.quad['weight']
         state_dot[3] = x_dotdot[0]
         state_dot[4] = x_dotdot[1]
         state_dot[5] = x_dotdot[2]
         # The angular rates(t+1 theta_dots equal the t theta_dots)
-        state_dot[6] = self.quads['state'][9]
-        state_dot[7] = self.quads['state'][10]
-        state_dot[8] = self.quads['state'][11]
+        state_dot[6] = self.quad['state'][9]
+        state_dot[7] = self.quad['state'][10]
+        state_dot[8] = self.quad['state'][11]
         # The angular accelerations
-        omega = self.quads['state'][9:12]
-        tau = np.array([self.quads['L']*(self.quads['m1'].thrust-self.quads['m3'].thrust), self.quads['L']*(self.quads['m2'].thrust-self.quads['m4'].thrust), self.b*(self.quads['m1'].thrust-self.quads['m2'].thrust+self.quads['m3'].thrust-self.quads['m4'].thrust)])
-        omega_dot = np.dot(self.quads['invI'], (tau - np.cross(omega, np.dot(self.quads['I'],omega))))
+        omega = self.quad['state'][9:12]
+        tau = np.array([self.quad['L']*(self.quad['m1'].thrust-self.quad['m3'].thrust), self.quad['L']*(self.quad['m2'].thrust-self.quad['m4'].thrust), self.b*(self.quad['m1'].thrust-self.quad['m2'].thrust+self.quad['m3'].thrust-self.quad['m4'].thrust)])
+        omega_dot = np.dot(self.quad['invI'], (tau - np.cross(omega, np.dot(self.quad['I'],omega))))
         state_dot[9] = omega_dot[0]
         state_dot[10] = omega_dot[1]
         state_dot[11] = omega_dot[2]
         return state_dot
 
     def update(self, dt):
-        self.ode.set_initial_value(self.quads['state'],0).set_f_params()
-        self.quads['state'] = self.ode.integrate(self.ode.t + dt)
-        self.quads['state'][6:9] = self.wrap_angle(self.quads['state'][6:9])
-        self.quads['state'][2] = max(0,self.quads['state'][2])
+        self.ode.set_initial_value(self.quad['state'],0).set_f_params()
+        self.quad['state'] = self.ode.integrate(self.ode.t + dt)
+        self.quad['state'][6:9] = self.wrap_angle(self.quad['state'][6:9])
+        self.quad['state'][2] = max(0,self.quad['state'][2])
 
     def set_motor_speeds(self,speeds):
-        self.quads['m1'].set_speed(speeds[0])
-        self.quads['m2'].set_speed(speeds[1])
-        self.quads['m3'].set_speed(speeds[2])
-        self.quads['m4'].set_speed(speeds[3])
+        self.quad['m1'].set_speed(speeds[0])
+        self.quad['m2'].set_speed(speeds[1])
+        self.quad['m3'].set_speed(speeds[2])
+        self.quad['m4'].set_speed(speeds[3])
 
     def get_position(self):
-        return self.quads['state'][0:3]
+        return self.quad['state'][0:3]
 
     def get_linear_rate(self):
-        return self.quads['state'][3:6]
+        return self.quad['state'][3:6]
 
     def get_orientation(self):
-        return self.quads['state'][6:9]
+        return self.quad['state'][6:9]
 
     def get_angular_rate(self):
-        return self.quads['state'][9:12]
+        return self.quad['state'][9:12]
 
     def get_state(self):
-        return self.quads['state']
+        return self.quad['state']
 
     def set_position(self,position):
-        self.quads['state'][0:3] = position
+        self.quad['state'][0:3] = position
 
     def set_orientation(self,orientation):
-        self.quads['state'][6:9] = orientation
+        self.quad['state'][6:9] = orientation
 
     def get_time(self):
         return self.time
