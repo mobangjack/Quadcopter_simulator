@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import quadcopter,gui,controller,arbiter
 import signal
 import sys, time
@@ -8,6 +10,7 @@ TIME_SCALING = 1.0 # Any positive number(Smaller is faster). 1.0->Real Time, 0.0
 QUAD_DYNAMICS_UPDATE = 0.002 # seconds
 CONTROLLER_DYNAMICS_UPDATE = 0.005 # seconds
 run = True
+threads = []
 
 def Single_Point2Point():
     # Set goals to go to
@@ -44,17 +47,23 @@ def Single_Point2Point():
     #     ctrls.append(ctrl)
     # Start the threads
     quad.start_thread(dt=QUAD_DYNAMICS_UPDATE,time_scaling=TIME_SCALING)
+    threads.append(quad)
     for i in range(channels):
         ctrls[i].start_thread(update_rate=CONTROLLER_DYNAMICS_UPDATE,time_scaling=TIME_SCALING)
+        threads.append(ctrls[i])
     arb.start_thread()
+    threads.append(arb)
     cursor = 0
     # Update the GUI while switching between destination poitions
     while(run==True):
+        time.sleep(0)
         for goal,y in zip(GOALS,YAWS):
             for i in range(channels):
                 ctrls[i].update_target(goal)
                 ctrls[i].update_yaw_target(y)
             for i in range(100):
+                if not run:
+                    break
                 gui_object.quad['position'] = quad.get_position()
                 gui_object.quad['orientation'] = quad.get_orientation()
                 gui_object.update()
@@ -64,10 +73,12 @@ def Single_Point2Point():
                 else:
                     ctrls[i].halt = False
 
-    quad.stop_thread()
-    arb.stop_thread()
-    for i in range(channels):
-        ctrls[i].stop_thread()
+    for thread in threads:
+        thread.stop_thread()
+    for thread in threads:
+        thread.thread_object.join()
+    print('Stopped')
+    sys.exit(0)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Quadcopter Simulator")
@@ -80,7 +91,8 @@ def signal_handler(signal, frame):
     global run
     run = False
     print('Stopping')
-    sys.exit(0)
+    for thread in threads:
+        thread.stop_thread()
 
 if __name__ == "__main__":
     args = parse_args()

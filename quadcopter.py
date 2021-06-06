@@ -93,6 +93,8 @@ class Quadcopter():
         self.quad['state'][2] = max(0,self.quad['state'][2])
 
     def set_motor_speeds(self,speeds):
+        if speeds is None:
+            return
         self.quad['m1'].set_speed(speeds[0])
         self.quad['m2'].set_speed(speeds[1])
         self.quad['m3'].set_speed(speeds[2])
